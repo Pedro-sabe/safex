@@ -114,15 +114,21 @@ app.post('/webhook', async (req, res) => {
     history.push({ role: "assistant", content: reply });
     conversations.set(from, history);
 
-await axios.post(`https://graph.facebook.com/v20.0/${PHONE_ID}/messages`, {
-  messaging_product: "whatsapp",
-  to: from,
-  type: "text",
-  text: { body: reply },
-  preview_url: false
-}, {
-  headers: { Authorization: `Bearer ${TOKEN}` }
-});
+    await axios.post(`https://graph.facebook.com/v20.0/${PHONE_ID}/messages`, {
+      messaging_product: "whatsapp",
+      recipient_type: "individual",
+      to: from,
+      type: "text",
+      text: { 
+        preview_url: false,
+        body: reply 
+      }
+    }, {
+      headers: { 
+        Authorization: `Bearer ${TOKEN}`,
+        'Content-Type': 'application/json'
+      }
+    });
 
   } catch (e) {
     console.error("Erro:", e.message);
@@ -132,4 +138,5 @@ await axios.post(`https://graph.facebook.com/v20.0/${PHONE_ID}/messages`, {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`SAFEX vivo na porta ${PORT}`));
+
 
