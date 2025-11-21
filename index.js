@@ -23,7 +23,7 @@ app.get('/webhook', (req, res) => {
 
 app.post('/webhook', async (req, res) => {
   try {
-    const message = req.body.entry[0].changes[0].value.messages[0];
+    const message = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
     if (!message || message.type !== 'text') return res.sendStatus(200);
 
     const from = message.from;
@@ -45,21 +45,33 @@ app.post('/webhook', async (req, res) => {
       assistant_id: ASSISTANT_ID
     });
 
-    let runStatus = await openai.beta.threads.runs.retrieve(threadId, run.id);
-    while (runStatus.status === 'queued' || runStatus.status === 'in_progress') {
-      await new Promise(r => setTimeout(r, 1000));
+    // polling mais longo e robusto
+    let runStatus = { status: 'queued' };
+    for (let i = 0; i < 30; i++) {
       runStatus = await openai.beta.threads.runs.retrieve(threadId, run.id);
+      if (runStatus.status === 'completed') break;
+      if (['failed', 'cancelled', 'expired'].includes(runStatus.status)) break;
+      await new Promise(r => setTimeout(r, 1000));
     }
 
     if (runStatus.status === 'completed') {
       const messages = await openai.beta.threads.messages.list(threadId);
-      const reply = messages.data[0].content[0].text.value;
+      const reply = messages.data[0].content[0].text.value || "Desculpe, não consegui gerar resposta.";
 
       await axios.post(`https://graph.facebook.com/v20.0/${PHONE_ID}/messages`, {
         messaging_product: "whatsapp",
         to: from,
         type: "text",
         text: { body: reply }
+      }, {
+        headers: { Authorization: `Bearer ${TOKEN}` }
+      });
+    } else {
+      await axios.post(`https://graph.facebook.com/v20.0/${PHONE_ID}/messages`, {
+        messaging_product: "whatsapp",
+        to: from,
+        type: "text",
+        text: { body: "Desculpe, estou demorando um pouco. Tente novamente em 10 segundos." }
       }, {
         headers: { Authorization: `Bearer ${TOKEN}` }
       });
@@ -71,4 +83,4 @@ app.post('/webhook', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`SAFEX rodando na porta ${PORT}`));
+app.listen(PORT, () => console.log(`SAFEX 100% vivo na porta ${PORT}`));
