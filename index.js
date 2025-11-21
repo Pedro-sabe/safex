@@ -60,7 +60,7 @@ CASOS ESPECIAIS
 • Sempre termine respostas longas com a opção:  
 “Deseja falar com radiologista humano agora? wa.me/55SEUNUMERO”
 
-Use Retrieval para citar exatamente os documentos carregados. Use Code Interpreter para cálculo de eGFR ou dose cumulativa quando necessário. Nunca invente referências`;
+Use Retrieval para citar exatamente os documentos carregados. Use Code Interpreter para cálculo de eGFR ou dose cumulativa quando necessário. Nunca invente referências.`;
 
 const conversations = new Map(); // memória por usuário
 
@@ -116,3 +116,4 @@ app.post('/webhook', async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`SAFEX vivo na porta ${PORT}`));
+
