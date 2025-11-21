@@ -45,42 +45,46 @@ app.post('/webhook', async (req, res) => {
       assistant_id: ASSISTANT_ID
     });
 
-    // polling mais longo e robusto
-    let runStatus = { status: 'queued' };
-    for (let i = 0; i < 30; i++) {
-      runStatus = await openai.beta.threads.runs.retrieve(threadId, run.id);
+    // Polling robusto: 60s max, com fallback
+    let runStatus = await openai.beta.threads.runs.retrieve(threadId, run.id);
+    let attempts = 0;
+    while (attempts < 60) {
       if (runStatus.status === 'completed') break;
       if (['failed', 'cancelled', 'expired'].includes(runStatus.status)) break;
       await new Promise(r => setTimeout(r, 1000));
+      runStatus = await openai.beta.threads.runs.retrieve(threadId, run.id);
+      attempts++;
     }
 
+    let reply = "Desculpe, estou processando. Tente novamente em 10s.";
     if (runStatus.status === 'completed') {
       const messages = await openai.beta.threads.messages.list(threadId);
-      const reply = messages.data[0].content[0].text.value || "Desculpe, não consegui gerar resposta.";
-
-      await axios.post(`https://graph.facebook.com/v20.0/${PHONE_ID}/messages`, {
-        messaging_product: "whatsapp",
-        to: from,
-        type: "text",
-        text: { body: reply }
-      }, {
-        headers: { Authorization: `Bearer ${TOKEN}` }
-      });
-    } else {
-      await axios.post(`https://graph.facebook.com/v20.0/${PHONE_ID}/messages`, {
-        messaging_product: "whatsapp",
-        to: from,
-        type: "text",
-        text: { body: "Desculpe, estou demorando um pouco. Tente novamente em 10 segundos." }
-      }, {
-        headers: { Authorization: `Bearer ${TOKEN}` }
-      });
+      reply = messages.data[0].content[0].text.value;
     }
+
+    await axios.post(`https://graph.facebook.com/v20.0/${PHONE_ID}/messages`, {
+      messaging_product: "whatsapp",
+      to: from,
+      type: "text",
+      text: { body: reply }
+    }, {
+      headers: { Authorization: `Bearer ${TOKEN}` }
+    });
+
   } catch (e) {
     console.error("Erro:", e.message);
+    // Fallback mensagem de erro
+    await axios.post(`https://graph.facebook.com/v20.0/${PHONE_ID}/messages`, {
+      messaging_product: "whatsapp",
+      to: message.from,
+      type: "text",
+      text: { body: "Erro interno. Tente novamente." }
+    }, {
+      headers: { Authorization: `Bearer ${TOKEN}` }
+    });
   }
   res.sendStatus(200);
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`SAFEX 100% vivo na porta ${PORT}`));
+app.listen(PORT, () => console.log(`SAFEX vivo na porta ${PORT}`));
