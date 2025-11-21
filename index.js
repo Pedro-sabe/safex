@@ -12,7 +12,6 @@ const PHONE_ID = process.env.PHONE_NUMBER_ID;
 
 const conversations = new Map();
 
-// PROMPT SAFEX PRO COMPLETO (já dentro do código)
 const SAFEX_PROMPT = `Você é o SAFEX Pro – assistente especialista em segurança e escolha do melhor exame de imagem com menor risco global para médicos solicitantes e tecnólogos/enfermeiros de radiologia no Brasil.
 
 OBJETIVO PRINCIPAL
